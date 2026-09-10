@@ -175,9 +175,39 @@ const historyEl = document.getElementById('history');
 let stream = null;
 let scanning = false;
 let rafId = null;
-let history = JSON.parse(localStorage.getItem('qr-history') || '[]');
+let history = [];
 let lastCode = null;
 let lastCodeTime = 0;
+let dbReady = false;
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('qr-reader-db', 1);
+    req.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore('history');
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function loadHistory() {
+  return new Promise((resolve) => {
+    if (!db) { resolve([]); return; }
+    const tx = db.transaction('history', 'readonly');
+    const store = tx.objectStore('history');
+    const req = store.get('list');
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+}
+
+function saveHistory() {
+  if (!db) return;
+  const tx = db.transaction('history', 'readwrite');
+  tx.objectStore('history').put(history, 'list');
+}
 
 const scanCanvas = document.createElement('canvas');
 const sctx = scanCanvas.getContext('2d', { willReadFrequently: true });
@@ -214,7 +244,7 @@ function showResult(text) {
   lastCodeTime = now;
   history.unshift({ text, time: new Date().toLocaleTimeString('ja-JP') });
   history = history.slice(0, 10);
-  localStorage.setItem('qr-history', JSON.stringify(history));
+  saveHistory();
   renderHistory();
 }
 
@@ -329,6 +359,16 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
+
+(async () => {
+  try {
+    await openDB();
+    history = await loadHistory();
+    renderHistory();
+  } catch (e) {
+    console.warn('IndexedDB failed, falling back to memory only');
+  }
+})();
 </script>
 </body>
 </html>
