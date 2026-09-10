@@ -320,6 +320,7 @@ function tick() {
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  setStatus('画像を読み込み中…');
   const img = new Image();
   img.onload = () => {
     const c = document.createElement('canvas');
@@ -328,7 +329,9 @@ fileInput.addEventListener('change', (e) => {
     const cx = c.getContext('2d');
     cx.drawImage(img, 0, 0);
     const imageData = cx.getImageData(0, 0, c.width, c.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth'
+    });
     if (code) {
       showResult(code.data);
       setStatus('画像からQRコードを読み取りました');
@@ -336,7 +339,11 @@ fileInput.addEventListener('change', (e) => {
       setStatus('画像からQRコードが見つかりませんでした');
     }
   };
+  img.onerror = () => {
+    setStatus('画像の読み込みに失敗しました');
+  };
   img.src = URL.createObjectURL(file);
+  fileInput.value = '';
 });
 
 copyBtn.addEventListener('click', () => {
