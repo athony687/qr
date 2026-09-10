@@ -175,7 +175,7 @@ const historyEl = document.getElementById('history');
 let stream = null;
 let scanning = false;
 let rafId = null;
-let history = [];
+let history = JSON.parse(localStorage.getItem('qr-history') || '[]');
 let lastCode = null;
 let lastCodeTime = 0;
 
@@ -214,6 +214,7 @@ function showResult(text) {
   lastCodeTime = now;
   history.unshift({ text, time: new Date().toLocaleTimeString('ja-JP') });
   history = history.slice(0, 10);
+  localStorage.setItem('qr-history', JSON.stringify(history));
   renderHistory();
 }
 
