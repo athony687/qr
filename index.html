@@ -327,12 +327,20 @@ fileInput.addEventListener('change', (e) => {
   setStatus('画像を読み込み中…');
   const img = new Image();
   img.onload = () => {
+    const MAX = 1500;
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+    if (w > MAX || h > MAX) {
+      const scale = MAX / Math.max(w, h);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+    }
     const c = document.createElement('canvas');
-    c.width = img.naturalWidth;
-    c.height = img.naturalHeight;
+    c.width = w;
+    c.height = h;
     const cx = c.getContext('2d');
-    cx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
-    const imageData = cx.getImageData(0, 0, c.width, c.height);
+    cx.drawImage(img, 0, 0, w, h);
+    const imageData = cx.getImageData(0, 0, w, h);
     let code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: 'attemptBoth'
     });
@@ -340,7 +348,7 @@ fileInput.addEventListener('change', (e) => {
       showResult(code.data);
       setStatus('画像からQRコードを読み取りました');
     } else {
-      setStatus('画像からQRコードが見つかりませんでした (' + c.width + 'x' + c.height + ')');
+      setStatus('QRコードが見つかりませんでした (' + w + 'x' + h + ')');
     }
   };
   img.onerror = () => {
