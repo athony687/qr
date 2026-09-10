@@ -320,23 +320,27 @@ function tick() {
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  if (typeof jsQR !== 'function') {
+    setStatus('jsQRライブラリが読み込まれていません。ネットに接続して再読み込みしてください。');
+    return;
+  }
   setStatus('画像を読み込み中…');
   const img = new Image();
   img.onload = () => {
     const c = document.createElement('canvas');
-    c.width = img.width;
-    c.height = img.height;
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
     const cx = c.getContext('2d');
-    cx.drawImage(img, 0, 0);
+    cx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
     const imageData = cx.getImageData(0, 0, c.width, c.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+    let code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: 'attemptBoth'
     });
     if (code) {
       showResult(code.data);
       setStatus('画像からQRコードを読み取りました');
     } else {
-      setStatus('画像からQRコードが見つかりませんでした');
+      setStatus('画像からQRコードが見つかりませんでした (' + c.width + 'x' + c.height + ')');
     }
   };
   img.onerror = () => {
